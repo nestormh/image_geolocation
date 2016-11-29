@@ -25,10 +25,10 @@ $> image_geolocation.py [-h] locations input_folder output_folder
 ![alt text](https://github.com/nestormh/image_geolocation/raw/master/tutorial/screen1.jpg "Tutorial screen 1")
 
 2. Go to [Google Takeout] (https://takeout.google.com/settings/takeout)
-  a. Unselect all
-  b. Select "Locations history" (or similar, mine is in Spanish so I don't know the exact words used, sorry :) )
-  c. Between json or kml, select *json*
-  d. Click *Next*
+  1. Unselect all
+  2. Select "Locations history" (or similar, mine is in Spanish so I don't know the exact words used, sorry :) )
+  3. Between json or kml, select *json*
+  4. Click *Next*
 
 ![alt text](https://github.com/nestormh/image_geolocation/raw/master/tutorial/screen2.jpg "Tutorial screen 2")
 
