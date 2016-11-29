@@ -1,6 +1,50 @@
 # -*- coding: utf-8 -*-
 
-__author__ = 'nestor'
+__author__ = 'Néstor Morales Hernández'
+__copyright__ = "Copyright 2016"
+__license__ = "Apache License, Version 2.0"
+__version__ = "0.0.1"
+__maintainer__ = "Néstor Morales Hernández"
+__email__ = "nestor@isaatc.ull.es"
+__status__ = "Production"
+
+
+# Copyright 2016 Néstor Morales Hernández <nestor@isaatc.ull.es>
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# The presented file receives as input a .json with the Google's history of locations (see the README to know how to
+# retrieve it), and an input folder with images (in the current version, just .jpg), and modifies their EXIF so they
+# are geo-located.
+# The method looks into the image timestamp (depends on how well configured is the camera clock). Based on that
+# timestamp, it searches along the available locations, selecting that which was closer in the time.
+#
+# The script has not been fully tested, so we suggest to keep the originals safe and use a copy as input.
+#
+# If you have questions, problems, inquiries, please contact me at https://github.com/nestormh/image_geolocation.
+#
+# Usage: image_geolocation.py [-h] locations input_folder output_folder
+#
+# Add geolocation to your images based on Google History.
+#
+# positional arguments:
+#   locations      .json file with the locations, as extracted from Google
+#                  locations.
+#   input_folder   Folder with the original images.
+#   output_folder  Folder where destination images will be stored.
+#
+# optional arguments:
+#   -h, --help     show this help message and exit
 
 import argparse
 import os
@@ -19,62 +63,46 @@ from distutils.dir_util import mkpath
 from shutil import copyfile
 
 class ImageLocator:
-    NAMESPACE = "{http://www.opengis.net/kml/2.2}"
+    """
+    Main class which manages the pipeline of the program.
+    """
 
     def __init__(self):
+        """
+        Initializes the class. Not being used at the moment
+        :return: None
+        """
         pass
 
-    def open_localizations(self, input_dir):
-        files = glob.glob('%s/*.kml' % input_dir)
-
-        for kml_file in files:
-            with open(kml_file) as f:
-                parser = etree.XMLParser(ns_clean=True)
-                doc = etree.parse(f, parser=parser)
-
-            print etree.tostring(doc, pretty_print=True)
-
-
-            e = doc.getroot()
-            # e = xml.etree.ElementTree.parse(kml_file).getroot()
-
-            # print etree.tostring(doc, pretty_print=True)
-
-            for document in e.findall("%sDocument" % self.NAMESPACE):
-                if "%sDocument" % self.NAMESPACE == document.tag:
-                    for placemark in document.findall("%sPlacemark" % self.NAMESPACE):
-                    # print(atype.get('foobar'))
-                        print document, placemark.tag
-                        placemark_data = {}
-                        for item in placemark.findall("*"):
-                            print item.tag, item.text
-
-                        exit(0)
-            # print type(doc)
-            # for node in doc.iteritems():
-            #     print node.tag, node.text
-
-            # print doc["kml"]
-            exit(0)
-
     def open_locations_json(self, filename):
+        """
+        Opens the json with the locations and stores useful information in memory.
+        :param filename: File name of the .json input file
+        :return: Nothing, just stores the locations in a variable internal to the class.
+        """
         with open(filename, "r") as f:
             locations = json.load(f)
 
         self.locations = {}
         for location in locations["locations"]:
-            # print location.keys()
-            # timestamp = datetime.utcfromtimestamp(int(location["timestampMs"]) / 1000)
             timestamp = int(location["timestampMs"]) / 1000
 
             latitude = float(location["latitudeE7"]) / 1e7
             longitude = float(location["longitudeE7"]) / 1e7
 
-            # print timestamp, datetime.utcfromtimestamp(timestamp).strftime("%Y/%m/%d %H:%M:%S"), latitude, longitude
-
             self.locations[timestamp] = (latitude, longitude)
 
     def update_images_info(self, folder, output_folder):
+        """
+        1) Retrieves all the images available in the input folder
+        2) For each image, retrieves the timestamp
+        3) From the list of available locations, searches for the closest location in time.
+        4) EXIF is modified and image is stored in the output folder.
+
+        :param folder: Name of the input folder
+        :param output_folder: Name of the output folder.
+        :return: None
+        """
         extensions = [ "jpg" ]
 
         if not os.path.exists(output_folder):
@@ -88,8 +116,6 @@ class ImageLocator:
         timestamps = sorted(self.locations.keys())
 
         takeClosest = lambda num,collection:min(collection,key=lambda x:abs(x-num))
-        # closest = takeClosest(timestamps[0], timestamps[1:])
-        # print timestamps[0], timestamps[1], closest
 
         # http://coreygoldberg.blogspot.com.es/2014/01/python-fixing-my-photo-library-dates.html
         # https://git.gnome.org/browse/gexiv2/tree/GExiv2.py
@@ -101,22 +127,15 @@ class ImageLocator:
 
             exif = GExiv2.Metadata(filename)
 
-            # exif.set_gps_info(10, 20, 30)
-            # pprint(exif.get_tags())
-
             curr_timestamp = datetime.strptime(exif['Exif.Image.DateTime'], "%Y:%m:%d %H:%M:%S")
             curr_timestamp = (curr_timestamp - datetime(1970, 1, 1)).total_seconds()
 
-            # print curr_timestamp, exif['Exif.Image.DateTime']
             closest_timestamp = takeClosest(curr_timestamp, timestamps)
-            # print curr_timestamp, closest, datetime.utcfromtimestamp(closest)
 
             gps_coords = self.locations[closest_timestamp]
 
 
-            # print gps_coords
             exif.set_gps_info(gps_coords[1], gps_coords[0], 0.0)
-            # print curr_timestamp
             if gps_coords[0] >= 0.0:
                 exif.set_tag_string("Exif.GPSInfo.GPSLatitudeRef", "N")
             else:
@@ -126,18 +145,6 @@ class ImageLocator:
                 exif.set_tag_string("Exif.GPSInfo.GPSLongitudeRef", "E")
             else:
                 exif.set_tag_string("Exif.GPSInfo.GPSLongitudeRef", "W")
-
-            # print exif['Exif.Image.DateTime']
-            # print exif['Exif.Photo.DateTimeDigitized']
-            # print exif['Exif.Photo.DateTimeOriginal']
-            # print exif['Exif.GPSInfo.GPSLatitude']
-            # print exif['Exif.GPSInfo.GPSLongitude']
-            # print exif['Exif.GPSInfo.GPSAltitude']
-            # print exif['Exif.GPSInfo.GPSLatitudeRef']
-            # print exif['Exif.GPSInfo.GPSLongitudeRef']
-            # print exif['Exif.GPSInfo.GPSAltitudeRef']
-            # print exif['Exif.GPSInfo.GPSMapDatum']
-            # print exif['Exif.GPSInfo.GPSVersionID']
 
             exif.save_file(output_file)
 
@@ -164,6 +171,7 @@ if __name__ == "__main__":
 
         if answer == "n":
             exit(0)
+
     if not os.path.exists(locations):
         print "Locations file %s invalid or not present." % locations
 
