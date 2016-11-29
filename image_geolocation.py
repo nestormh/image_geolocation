@@ -50,11 +50,10 @@ import argparse
 import os
 import json
 import glob
-from pykml import parser
 from datetime import datetime
-from gi.repository import GExiv2
 from distutils.dir_util import mkpath
 from shutil import copyfile
+from gi.repository import GExiv2
 
 
 class ImageLocator:
