@@ -1,6 +1,21 @@
 # image_geolocation
 Given a set of images and your Google locations history, it approximately geolocates your images by modifying the EXIF.
 
+# Pre-requisites
+* [Gexiv2] (https://github.com/GNOME/gexiv2/blob/master/INSTALLING)
+
+# Usage
+```
+$> image_geolocation.py [-h] locations input_folder output_folder
+```
+
+* positional arguments:
+..* locations --> .json file with the locations, as extracted from Google locations.
+..* input_folder --> Folder with the original images.
+..* output_folder --> Folder where destination images will be stored.
+
+* optional arguments:
+..* -h, --help     show this help message and exit
 
 # How to get the Google locations history
 1. Go to [Google Timeline] (https://www.google.com/maps/timeline)
