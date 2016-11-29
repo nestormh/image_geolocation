@@ -48,19 +48,14 @@ __status__ = "Production"
 
 import argparse
 import os
-import pexif
 import json
 import glob
-from pprint import pprint
 from pykml import parser
-from lxml import etree
-import xml.etree.ElementTree
 from datetime import datetime
 from gi.repository import GExiv2
-import numpy as np
-from sklearn.neighbors import KDTree
 from distutils.dir_util import mkpath
 from shutil import copyfile
+
 
 class ImageLocator:
     """
@@ -81,10 +76,10 @@ class ImageLocator:
         :return: Nothing, just stores the locations in a variable internal to the class.
         """
         with open(filename, "r") as f:
-            locations = json.load(f)
+            json_locations = json.load(f)
 
         self.locations = {}
-        for location in locations["locations"]:
+        for location in json_locations["locations"]:
             timestamp = int(location["timestampMs"]) / 1000
 
             latitude = float(location["latitudeE7"]) / 1e7
@@ -103,7 +98,7 @@ class ImageLocator:
         :param output_folder: Name of the output folder.
         :return: None
         """
-        extensions = [ "jpg" ]
+        extensions = ["jpg"]
 
         if not os.path.exists(output_folder):
             mkpath(output_folder)
@@ -115,7 +110,7 @@ class ImageLocator:
 
         timestamps = sorted(self.locations.keys())
 
-        takeClosest = lambda num,collection:min(collection,key=lambda x:abs(x-num))
+        take_closest = lambda num, collection: min(collection, key=lambda x: abs(x-num))
 
         # http://coreygoldberg.blogspot.com.es/2014/01/python-fixing-my-photo-library-dates.html
         # https://git.gnome.org/browse/gexiv2/tree/GExiv2.py
@@ -130,10 +125,9 @@ class ImageLocator:
             curr_timestamp = datetime.strptime(exif['Exif.Image.DateTime'], "%Y:%m:%d %H:%M:%S")
             curr_timestamp = (curr_timestamp - datetime(1970, 1, 1)).total_seconds()
 
-            closest_timestamp = takeClosest(curr_timestamp, timestamps)
+            closest_timestamp = take_closest(curr_timestamp, timestamps)
 
             gps_coords = self.locations[closest_timestamp]
-
 
             exif.set_gps_info(gps_coords[1], gps_coords[0], 0.0)
             if gps_coords[0] >= 0.0:
@@ -150,12 +144,11 @@ class ImageLocator:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Add geolocation to your images based on Google History.')
-    parser.add_argument("locations", metavar="locations", type=str,
-                       help='.json file with the locations, as extracted from Google locations.')
-    parser.add_argument("input_folder", metavar="input_folder", type=str,
-                       help='Folder with the original images.')
-    parser.add_argument("output_folder", metavar="output_folder", type=str,
-                       help='Folder where destination images will be stored.')
+    parser.add_argument("locations", metavar="locations", type=str, help='.json file with the locations, as extracted from Google locations.')
+
+    parser.add_argument("input_folder", metavar="input_folder", type=str, help='Folder with the original images.')
+
+    parser.add_argument("output_folder", metavar="output_folder", type=str, help='Folder where destination images will be stored.')
 
     args = parser.parse_args()
 
